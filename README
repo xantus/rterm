@@ -1,0 +1,33 @@
+-------------------------------------------------------------
+        rTerm - ExtJS WebSocket Terminal (Ajaxterm)
+-------------------------------------------------------------
+http://github.com/xantus/rterm
+
+To start the event bus
+
+./bin/event-bus
+
+To start the flash policy server (for the flash based websocket)
+
+./bin/flash-policy-server
+
+To start the http server:
+
+./run
+
+CGI, and FastCGI will be covered later when the code is more
+mature.
+
+-------------------------------------------------------------
+                       github Users
+-------------------------------------------------------------
+To check out rTerm from github:
+
+git clone git://github.com/kraih/mojo.git
+# THIS PART IS IMPORTANT
+git submodule update --init
+
+This will fetch rTerm, and update the mojo
+submodule from their remote repo which is
+located at http://github.com/kraih/mojo
+-------------------------------------------------------------

@@ -1,0 +1,49 @@
+#!/usr/bin/env perl
+
+use FindBin;
+my $pwd = "$FindBin::Bin";
+my $fromgit = -d "$pwd/.git";
+
+unless ( -e "$pwd/libs/mojo-origin/Makefile.PL" ) {
+    print "Ok, something is wrong.\n";
+    if ( $fromgit ) {
+        print "You need to run 'git submodule update --init' to fetch Mojo\n";
+        print "(and other submodules) before you can run rTerm.\n";
+    } else {
+        print "I'm guessing you downloaded rTerm from github as a zip or tar\n";
+        print "You have two options, get rTerm from github (see README), -OR-\n";
+        print "Download Mojo from http://github.com/kraih/mojo and unzip (or untar) it so that\n";
+        print "Makefile.PL and friends are in libs/mojo-origin/\n";
+    }
+    print "Thanks!\n";
+    exit;
+}
+
+unless ( -e "$pwd/public/js/web-socket-js/WebSocketMain.swf" ) {
+    if ( $fromgit ) {
+        print "You need to run 'git submodule update --init' to fetch web-socket-js before you can run this.\n";
+        print "Odd thing though... you used git, and you have Mojo downloaded.\n";
+        print "You shouldn't see this msg unless something was screwed up....and it's probably my fault.\n";
+    } else {
+        print "I'm guessing you downloaded rTerm from github as a zip or tar\n";
+        print "You have two options, get rTerm from github (see README), -OR-\n";
+        print "Download web-socket-js from http://github.com/gimite/web-socket-js and unzip (or untar) it so that\n";
+        print "WebSocketMain.swf and friends are in public/js/web-socket-js/\n";
+    }
+    print "Thanks!\n";
+    exit;
+}
+
+# default mode is development, and writes to log/development.log
+# production mode writes to log/production.log
+
+#$ENV{MOJO_MODE} = 'production';
+
+@ARGV = qw( daemon --listen http://*:5000 --lock=etc/rterm.lock --pid=etc/rterm.pid ) unless ( @ARGV );
+
+if ( $^O eq 'MSWin32' ) {
+    exec( 'perl', "$pwd/bin/rterm", @ARGV );
+} else {
+    exec( "$pwd/bin/rterm", @ARGV );
+}
+

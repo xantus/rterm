@@ -1,0 +1,29 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/lib";
+
+$ENV{MOJO_HOME} = "$FindBin::Bin/../";
+
+use Bootstrapper; # in bin/lib
+
+# Check if Mojo is installed
+use Mojolicious; # in libs/mojo-origin
+
+print "This is Mojo/$Mojo::VERSION\n";
+
+print "For WebSocket support, you need bin/event-bus and bin/flash-policy-server running also\n";
+
+unless ( @ARGV ) {
+    @ARGV = qw( daemon --listen http://*:3000 );
+    push( @ARGV, "--lock=$FindBin::Bin/var/rterm.lock" );
+    push( @ARGV, "--pid=$FindBin::Bin/var/rterm.pid" );
+}
+
+# Start application
+use rTerm; # in libs/rterm
+
+rTerm->start;

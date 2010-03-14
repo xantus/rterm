@@ -1,0 +1,52 @@
+<html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>rTerm</title>
+<meta http-equiv="generator" content="Mojolicious" />
+<meta http-equiv="imagetoolbar" content="no" />
+<meta name="keywords" content="rterm, ajaxterm, websocket, extjs, comet, mojo, mojolicious, extjs, ext, ajax, mtfnpy, xantus, david davis" />
+<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+<link rel="icon" type="image/x-icon" href="/favicon.ico" />
+<meta http-equiv="X-UA-Compatible" content="chrome=1">
+<script type="text/javascript">
+    var pageTiming = [ new Date ];
+</script>
+<!-- ExtJS CSS -->
+<link rel="stylesheet" type="text/css" href="js/ext-3.2-beta/resources/css/ext-all.css" />
+
+<!-- CSS -->
+<link rel="stylesheet" type="text/css" href="css/rterm.css" />
+</head>
+<body scroll="no">
+
+<!-- ExtJS -->
+<script type="text/javascript" src="js/ext-3.2-beta/adapter/ext/ext-base.js"></script>
+<script type="text/javascript" src="js/ext-3.2-beta/ext-all.js"></script>
+
+<script type="text/javascript" src="js/web-socket-js/swfobject.js"></script>
+<script type="text/javascript" src="js/web-socket-js/FABridge.js"></script>
+<script type="text/javascript" src="js/web-socket-js/web_socket.js"></script>
+
+<!-- init JS -->
+<script type="text/javascript">
+    WebSocket.__swfLocation = "js/web-socket-js/WebSocketMain.swf";
+    Ext.BLANK_IMAGE_URL = 'js/ext-3.2-beta/resources/images/s.gif';
+
+    window.log = function() {};
+    if ( !Ext.isIE && window.console ) {
+        window.log = function() {
+            console.log[ console.firebug ? 'apply' : 'call' ]( console, Array.prototype.slice.call( arguments ) );
+        };
+    } else if ( Ext.log ) {
+        window.log = window.Ext.log;
+    }
+</script>
+
+<script type="text/javascript" src="js/rterm.js"></script>
+<script type="text/javascript" src="js/app.js"></script>
+
+<script type="text/javascript">
+    pageTiming.push( new Date );
+</script>
+</body>
+</html>

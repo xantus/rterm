@@ -1,0 +1,226 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use FindBin;
+use lib "$FindBin::Bin/lib";
+
+$ENV{MOJO_HOME} = "$FindBin::Bin/../";
+
+use Bootstrapper; # in bin/lib
+use Mojolicious::Lite; # in libs/mojo
+use Mojo::JSON;
+#use Data::Dumper;
+
+BEGIN {
+    # install JSON and JSON::XS if you can!
+    eval 'use JSON;';
+    eval 'sub HAS_JSON(){ '.( $@ ? 0 : 1 ).'}';
+};
+
+print "This is Mojo/$Mojo::VERSION\n";
+
+unless ( @ARGV ) {
+    @ARGV = qw( daemon --listen http://*:3001 );
+    push( @ARGV, "--lock=$FindBin::Bin/var/event-bus.lock" );
+    push( @ARGV, "--pid=$FindBin::Bin/var/event-bus.pid" );
+}
+
+# globals
+my $json = HAS_JSON ? JSON->new : Mojo::JSON->new;
+my $clients = {};
+my $channels = {};
+my $stats = {
+    events_received => 0,
+    events_sent => 0,
+    clients_served => 0,
+};
+
+# constants
+sub CLIENT() { 0 }
+sub CHANNELS() { 1 }
+
+websocket '/' => sub {
+    my $self = shift;
+    my $id = scalar( $self->tx->connection );
+    my ( $cid ) = $id =~ m/\(0x([^\)]+)\)/;
+
+    $clients->{ $cid } = [
+        $self,  # CLIENT
+        {}      # CHANNELS
+    ];
+
+#    print Data::Dumper->Dump([$channels],['channels']);
+
+    app->log->debug( "ws connect - $id is $cid" );
+
+    $stats->{clients_served}++;
+
+    $self->finished( sub { cleanup( $cid ) } );
+    $self->receive_message( \&recv );
+    $stats->{events_sent}++;
+    $self->send_message( $json->encode( { channel => '/meta/connect', cid => $cid } ) );
+};
+
+any '/event' => sub {
+    my $self = shift;
+
+    # where is the request body?
+    my $d = ( $self->param( 'data' ) || $self->req->content->asset->{content} ) or die 'data required';
+    my $data = $json->decode( $d );
+
+    die 'data not in correct format' unless ref $data;
+#    app->log->debug( "data:$data" );
+
+    process( $_ ) foreach ( @{ ref $data eq 'ARRAY' ? $data : [ $data ] } );
+
+    $self->render_text('OK');
+};
+
+get '/favicon.ico' => sub {
+    shift->redirect_to( 'http://xant.us/favicon.ico' );
+};
+
+get '/' => sub {
+    shift->render( 'index', clients => $clients, stats => $stats, channels => $channels );
+};
+
+# see bin/flash-policy-server
+print "Remember, you need to also run bin/flash-policy-server as root for this to work...\n";
+
+app->start;
+
+exit;
+
+sub cleanup {
+    my $id = shift;
+
+    if ( my $ch = $clients->{ $id }->[ CHANNELS ] ) {
+        unsubscribe( $_, $id ) foreach ( keys %$ch );
+#        print Data::Dumper->Dump([$ch],["$id-channels"]);
+    }
+
+    delete $clients->{ $id };
+    
+    app->log->debug( "cleanup of $id done" );
+}
+
+sub recv {
+    my $self = shift;
+
+    my ( $id ) = scalar( $self->tx->connection ) =~ m/\(0x([^\)]+)\)/;
+
+    app->log->debug( "ws recv ( $id ) - $_[0]" );
+    my $msg = $json->decode( $_[0] );
+    return unless $msg && ref $msg eq 'ARRAY' || ref $msg eq 'HASH';
+
+    foreach ( @{ ref $msg eq 'ARRAY' ? $msg : [ $msg ] } ) {
+        $_->{from_cid} = $id;
+        if ( $_->{ping} ) {
+            $stats->{events_sent}++;
+            $self->send_message( $json->encode( { pong => time() } ) );
+        }
+        next unless ( $_->{channel} );
+        process( $_, $id );
+    }
+}
+
+
+sub unsubscribe {
+    my ( $ch, $id ) = @_;
+
+    app->log->debug( "unsubscribe: $ch" );
+    return unless $channels->{ $ch };
+
+#    print Data::Dumper->Dump([$clients->{ $id }->[ CHANNELS ]]);
+
+#    return unless ( delete $clients->{ $id }->[ CHANNELS ]->{ $ch } );
+
+    # remove the client from the channel
+    delete $channels->{ $ch }->{ $id };
+    # clean up empty channels
+    delete $channels->{ $ch } unless keys %{ $channels->{ $ch } };
+
+    return;
+}
+
+sub process {
+    my ( $msg, $id ) = @_;
+    
+    $stats->{events_received}++;
+
+    my $ch = $msg->{channel};
+
+    app->log->debug( "processing event for channel: $ch" );
+
+    if ( $msg->{cmd} && $msg->{cmd} eq 'subscribe' ) {
+        unless ( $clients->{ $id }->[ CHANNELS ]->{ $ch } ) {
+            $clients->{ $id }->[ CHANNELS ]->{ $ch } = 1;
+            app->log->debug( "subscribing $id to $ch" );
+            if ( $channels->{ $ch } ) {
+                $channels->{ $ch }->{ $id } = 1;
+            } else {
+                $channels->{ $ch } = { $id => 1 };
+            }
+        }
+        return;
+    } elsif ( $msg->{cmd} && $msg->{cmd} eq 'unsubscribe' ) {
+        app->log->debug( "unsubscribing $id to $ch" );
+        unsubscribe( $ch, $id );
+        return;
+    }
+    
+
+    my $data = $json->encode( $msg );
+    app->log->debug( "delivering $data" );
+
+    my @c = split( '/', $ch );
+    for my $i ( 0 .. $#c ) {
+        my $chan = join( '/', @c[ 0 .. $#c - $i ] ) || '/';
+
+        next unless ( $channels->{ $chan } );
+
+        foreach my $cid ( keys %{ $channels->{ $chan } } ) {
+            next if ( $id eq $cid );
+            app->log->debug( "client for channel '$chan' found: $cid" );
+
+            if ( my $cli = $clients->{ $cid } ) {
+                app->log->debug( "sending msg $msg to $cli" );
+                $stats->{events_sent}++;
+                eval {
+                    $cli->[ CLIENT ]->send_message( $data );
+                };
+                app->log->debug( "error during send_message on client $cid : $@" ) if ( $@ );
+            }
+        }
+    }
+}
+
+1;
+__DATA__
+
+@@ index.html.ep
+% my $url = $self->req->url->to_abs->scheme( 'ws' )->path( '/' );
+% use Data::Dumper;
+<!doctype html>
+<html>
+<head>
+    <title>Mojo WebSocket Event Bus</title>
+</head>
+<body>
+    <h1>Mojo WebSocket Event Bus</h1>
+    WebSocket available at <%= $url %>
+    <ul>
+    Connected clients: <%= scalar( keys %$clients ) %>
+    <% foreach my $id ( keys %$clients ) { %>
+        <li><a href="#<%= $id %>"><%= $id %></a></li>
+    <% } %>
+    </ul>
+    <pre>
+        <%= Data::Dumper->Dump([$stats],['stats']); %>
+        <%= Data::Dumper->Dump([$channels],['channels']); %>
+    </pre>
+</body>
+</html>
+

@@ -47,7 +47,6 @@ sub serve {
     # Append path to root
     my $path = File::Spec->catfile($self->root, split('/', $rel));
 
-    warn "starting with $path\n";
     # path is a directory, check for index files
     if (-d $path) {
         my $found = 0;

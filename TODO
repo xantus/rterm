@@ -1,0 +1,11 @@
+Todo
+----
+
+Convert rTerm js from Ext 2 to Ext 3
+
+
+Rip apart Ajaxterm
+  For now, we need the terminal, and the text to html conversion routines
+
+
+Convert rTerm js to websocket + mojo

@@ -28,11 +28,12 @@ Ext.ux.rTerm = Ext.extend( Ext.Window, {
     version: '1.0',
 
     constructor: function( config ) {
+        Ext.apply( config, {
+            iconCls: 'x-rterm-icon',
+            bodyCssClass: 'x-rterm-content'
+        });
         Ext.ux.rTerm.superclass.constructor.apply( this, arguments );
         log('init rterm window');
-
-        if ( !config.iconCls )
-            this.setIconClass( 'x-rterm-icon' );
 
         Ext.ux.rTerm.keyManager.register( this );
 
@@ -42,9 +43,11 @@ Ext.ux.rTerm = Ext.extend( Ext.Window, {
         this._setupTerm();
 
         // TODO onshow
-        this.body.addClass( 'x-rterm-content' );
         this.body.mask();
 
+        this.socket = new Ext.ux.rTerm.AjaxtermSocket({
+            uri: '/u'
+        });
         this.socket.on( 'socketData', this._socketData, this );
         this.socket.on( 'connect', this._socketConnected, this );
         this.socket.on( 'close', this._socketDisconnected, this );
@@ -392,8 +395,6 @@ Ext.ux.rTerm = Ext.extend( Ext.Window, {
 
 Ext.reg('rterm', Ext.ux.rTerm);
 
-Ext.ux.rTerm.keyManager = new Ext.ux.rTerm.KeyManager();
-
 
 Ext.ux.rTerm.Filter = Ext.extend( Ext.ux.Sprocket.Filter.Stream, {
 
@@ -657,11 +658,11 @@ Ext.ux.rTerm.KeyManager = Ext.extend( Ext.util.Observable, {
         this.terms = [];
         this.active = false;
 
-//        Ext.EventManager.on( document, 'keydown', this.keyEvent, this );
-        if (Ext.isIE)
+        if ( Ext.isIE )
             document.onkeydown = this.keyEvent.createDelegate( this );
         else
             document.onkeypress = this.keyEvent.createDelegate( this );
+//        Ext.EventManager.on( document, 'keydown', this.keyEvent, this );
 //        Ext.EventManager.on( document, 'keypress', this.keyEvent, this );
     },
 
@@ -725,6 +726,8 @@ Ext.ux.rTerm.KeyManager = Ext.extend( Ext.util.Observable, {
     }
 
 });
+
+Ext.ux.rTerm.keyManager = new Ext.ux.rTerm.KeyManager();
 
 
 })();

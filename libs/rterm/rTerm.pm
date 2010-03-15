@@ -72,7 +72,7 @@ sub startup {
         }
     }
 
-#    $self->routes->route( '/login' )->via( 'get' )->to( 'auth#login' )->name( 'login' );
+    $self->routes->route( '/u' )->to( 'proxy#foobar' );
 
     return;
 }

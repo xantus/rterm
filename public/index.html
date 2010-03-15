@@ -31,15 +31,6 @@
 <script type="text/javascript">
     WebSocket.__swfLocation = "js/web-socket-js/WebSocketMain.swf";
     Ext.BLANK_IMAGE_URL = 'js/ext-3.2-beta/resources/images/s.gif';
-
-    window.log = function() {};
-    if ( !Ext.isIE && window.console ) {
-        window.log = function() {
-            console.log[ console.firebug ? 'apply' : 'call' ]( console, Array.prototype.slice.call( arguments ) );
-        };
-    } else if ( Ext.log ) {
-        window.log = window.Ext.log;
-    }
 </script>
 
 <script type="text/javascript" src="js/rterm.js"></script>

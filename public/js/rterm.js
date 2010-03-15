@@ -12,16 +12,16 @@
 
 (function(){
 
-Ext.namespace( 'Ext.ux' );
-
-var log;
-if ( window.console ) {
-    log = function(m) { window.console.log(m); };
+var log = function() {};
+if ( !Ext.isIE && window.console ) {
+    log = function() {
+        console.log[ window.console.firebug ? 'apply' : 'call' ]( window.console, Array.prototype.slice.call( arguments ) );
+    };
 } else if ( Ext.log ) {
     log = window.Ext.log;
-} else {
-    log = Ext.emptyFn;
 }
+
+Ext.namespace( 'Ext.ux' );
 
 Ext.ux.rTerm = Ext.extend( Ext.Window, {
 
@@ -33,18 +33,18 @@ Ext.ux.rTerm = Ext.extend( Ext.Window, {
 
         if ( !config.iconCls )
             this.setIconClass( 'x-rterm-icon' );
-       
+
         Ext.ux.rTerm.keyManager.register( this );
 
         this.on( 'documentKeypress', this._keypress, this );
-        
+
         this.show();
         this._setupTerm();
 
         // TODO onshow
         this.body.addClass( 'x-rterm-content' );
         this.body.mask();
-        
+
         this.socket.on( 'socketData', this._socketData, this );
         this.socket.on( 'connect', this._socketConnected, this );
         this.socket.on( 'close', this._socketDisconnected, this );
@@ -56,18 +56,18 @@ Ext.ux.rTerm = Ext.extend( Ext.Window, {
         /*
         this.contentId = Ext.id();
         this.add({
-            layout: 'border', 
+            layout: 'border',
             border: false,
             items: [{
                 width: '100%',
                 height: '100%',
-                region: 'center', 
-                layout: 'fit', 
-                border: false, 
-                margins: '0', 
+                region: 'center',
+                layout: 'fit',
+                border: false,
+                margins: '0',
                 items: [{
                     html: '<div id="'+this.contentId+'" class="x-rterm-content">testing</div>'
-                }] 
+                }]
             }]
         });
         */
@@ -170,13 +170,13 @@ Ext.ux.rTerm = Ext.extend( Ext.Window, {
         this.error_timeout = null;
         this.keybuf = [];
         this.rmax = 1;
-    
+
         var div = this.body.dom;
 //        this.dstat = document.createElement('pre');
 //        this.sdebug = document.createElement('span');
         this._dterm = document.createElement('div');
-        
-/*        
+
+/*
         this.sled = document.createElement('span');
         this.opt_color = document.createElement('a');
         var opt_paste = document.createElement('a');
@@ -202,7 +202,7 @@ Ext.ux.rTerm = Ext.extend( Ext.Window, {
         }
 */
     },
- 
+
     _update: function() {
         if ( this._connecting )
             return;
@@ -229,7 +229,7 @@ Ext.ux.rTerm = Ext.extend( Ext.Window, {
             window.clearTimeout(this._timeout);
         this._timeout = this._update.defer( this._queueTimeout, this );
     },
-    
+
     _iekeys: {
         9:1,8:1,27:1,33:1,34:1,35:1,36:1,37:1,38:1,
         39:1,40:1,45:1,46:1,112:1,113:1,114:1,115:1,
@@ -240,7 +240,7 @@ Ext.ux.rTerm = Ext.extend( Ext.Window, {
 //        log( 'keypress:'+ev.keyCode+' '+ev.which+' '+ev.button);
         if (!ev)
             ev = window.event;
-        
+
         if ( Ext.isIE ) {
             // keydown
 //        log("kd keyCode="+ev.keyCode+" which="+ev.which+" shiftKey="+ev.shiftKey+" ctrlKey="+ev.ctrlKey+" altKey="+ev.altKey);
@@ -331,14 +331,14 @@ Ext.ux.rTerm = Ext.extend( Ext.Window, {
         //this.sled.className='off';
         log("Connection lost timeout ts:"+((new Date).getTime()));
     },
-    
+
     _opt_add: function(opt,name) {
         opt.className='off';
         opt.innerHTML=' '+name+' ';
         this.dstat.appendChild(opt);
         this.dstat.appendChild(document.createTextNode(' '));
     },
-    
+
    /*
     _do_color: function(event) {
         var o = this.opt_color.className=(this.opt_color.className=='off')?'on':'off';
@@ -346,7 +346,7 @@ Ext.ux.rTerm = Ext.extend( Ext.Window, {
         log('Color '+this.opt_color.className);
     },
     */
-    
+
     _mozilla_clipboard: function() {
          // mozilla sucks
         try {
@@ -371,10 +371,10 @@ Ext.ux.rTerm = Ext.extend( Ext.Window, {
         }
         if (str)
             str=str.value.QueryInterface(Components.interfaces.nsISupportsString);
-        
+
         return str ? str.data.substring(0,strLength.value / 2) : "";
     },
-    
+
     _do_paste: function(event) {
         var p;
         if (window.clipboardData) {
@@ -394,20 +394,16 @@ Ext.reg('rterm', Ext.ux.rTerm);
 
 Ext.ux.rTerm.keyManager = new Ext.ux.rTerm.KeyManager();
 
-Ext.ux.rTerm.Filter = function( config ) {
-    Ext.ux.rTerm.Filter.superclass.constructor.apply(this,arguments);
-};
 
-
-Ext.extend( Ext.ux.rTerm.Filter, Ext.ux.Sprocket.Filter.Stream, {
+Ext.ux.rTerm.Filter = Ext.extend( Ext.ux.Sprocket.Filter.Stream, {
 
     get: function( ) {
         var chunks = Ext.ux.rTerm.Filter.superclass.get.apply( this, arguments );
-    
+
         // filter xml blocks off the front
         for ( var i = 0, len = chunks.length; i < len; i++ )
             chunks[ i ] = { html: chunks[ i ].replace( /^<\?xml[^>]+>/, '' ) };
-            
+
         return chunks;
     },
 
@@ -418,17 +414,10 @@ Ext.extend( Ext.ux.rTerm.Filter, Ext.ux.Sprocket.Filter.Stream, {
 
 });
 
+Ext.ux.rTerm.AjaxtermSocket = Ext.extend( Ext.util.Observable, {
 
-Ext.ux.rTerm.AjaxtermSocket = function( config ) {
-    if ( config === undefined )
-        config = {};
-    Ext.apply( this, config );
-    this.initialize( config );
-};
-
-Ext.extend( Ext.ux.rTerm.AjaxtermSocket, Ext.util.Observable, {
-
-    initialize: function( config ) {
+    constructor: function( config ) {
+        Ext.apply( this, config );
         this.state = 'disconnected';
         this.reqFailures = 0;
         this.sending = false;
@@ -503,7 +492,7 @@ Ext.extend( Ext.ux.rTerm.AjaxtermSocket, Ext.util.Observable, {
         //var chunks = this.filter.put( data );
         //if ( chunks )
         //    this.doRequest( chunks );
-        for ( var i = 0, len = chunks.length; i < len; i++ ) 
+        for ( var i = 0, len = chunks.length; i < len; i++ )
             this.queue.push( chunks[ i ] );
 
         if ( this.timer )
@@ -515,7 +504,7 @@ Ext.extend( Ext.ux.rTerm.AjaxtermSocket, Ext.util.Observable, {
 
     /* same as send */
     write: function() {
-        this.send.apply( this, arguments );  
+        this.send.apply( this, arguments );
     },
 
 
@@ -537,7 +526,7 @@ Ext.extend( Ext.ux.rTerm.AjaxtermSocket, Ext.util.Observable, {
                this.fireEvent( 'socketData', this, chunks );
         } catch(e) { log('Error in socketData event call: '+e.message); };
     },
-    
+
 
     _getParams: function() {
         if ( this.queue.length > 0 ) {
@@ -618,7 +607,7 @@ Ext.extend( Ext.ux.rTerm.AjaxtermSocket, Ext.util.Observable, {
         } else {
             //this.onIOError( r.responseText );
 //            log('requeing data:'+Ext.encode(o.params));
-            log('requeing after error');            
+            log('requeing after error');
             this.queue.unshift( o.params );
             if ( this.timer )
                 window.clearTimeout( this.timer );
@@ -651,35 +640,23 @@ Ext.extend( Ext.ux.rTerm.AjaxtermSocket, Ext.util.Observable, {
 
 });
 
-Ext.ux.rTerm.App = function( config ) {
-    if ( config === undefined )
-        config = {};
-    Ext.apply( this, config );
-    this.initialize( config );
-};
 
-Ext.extend( Ext.ux.rTerm.App, Ext.util.Observable, {
+Ext.ux.rTerm.App = Ext.extend( Ext.util.Observable, {
 
-    initialize: function( config ) {
+    constructor: function( config ) {
+        Ext.apply( this, config );
         // TODO
     }
 });
 
 
-Ext.ux.rTerm.KeyManager = function( config ) {
-    if ( config === undefined )
-        config = {};
-    Ext.apply( this, config );
-    this.initialize( config );
-};
+Ext.ux.rTerm.KeyManager = Ext.extend( Ext.util.Observable, {
 
-
-Ext.extend( Ext.ux.rTerm.KeyManager, Ext.util.Observable, {
-
-    initialize: function( config ) {
+    constructor: function( config ) {
+        Ext.apply( this, config );
         this.terms = [];
         this.active = false;
-        
+
 //        Ext.EventManager.on( document, 'keydown', this.keyEvent, this );
         if (Ext.isIE)
             document.onkeydown = this.keyEvent.createDelegate( this );
@@ -687,17 +664,17 @@ Ext.extend( Ext.ux.rTerm.KeyManager, Ext.util.Observable, {
             document.onkeypress = this.keyEvent.createDelegate( this );
 //        Ext.EventManager.on( document, 'keypress', this.keyEvent, this );
     },
-    
+
     keyEvent: function( ev ) {
         if ( !this.active )
             return;
-        
+
         if ( !this.activeWin ) {
             this.active = false;
             log('active win is gone!');
             return;
         }
-        
+
         return this.activeWin.fireEvent( 'documentKeypress', ev);
     },
 
@@ -706,7 +683,7 @@ Ext.extend( Ext.ux.rTerm.KeyManager, Ext.util.Observable, {
         for ( var i = 0, len = this.terms.length; i < len; i++ )
             if ( this.terms[ i ] === win )
                 return;
-        log('registered new rTerm window'); 
+        log('registered new rTerm window');
         win.addEvents({
             /**
              * @event documentKeypress

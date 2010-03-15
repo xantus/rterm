@@ -1,12 +1,12 @@
 /* qwikioffice shortcut */
 .x-rterm-shortcut img {
-    background-image: url(images/rterm48x48.png);
-    filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='system/modules/rterm/images/rterm48x48.png', sizingMethod='scale');
+    background-image: url(../images/rterm48x48.png);
+    filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='/images/rterm48x48.png', sizingMethod='scale');
 }
 
 /* window icon */
 .x-rterm-icon {
-    background-image: url(images/rterm16x16.png) !important;
+    background-image: url(../images/rterm16x16.png) !important;
     background-color:transparent;
     background-position:center center;
     background-repeat:no-repeat;

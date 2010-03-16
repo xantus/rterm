@@ -23,7 +23,7 @@ mature.
 -------------------------------------------------------------
 To check out rTerm from github:
 
-git clone git://github.com/kraih/mojo.git
+git clone git://github.com/xantus/rterm.git
 # THIS PART IS IMPORTANT
 git submodule update --init
 
